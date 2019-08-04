@@ -1,0 +1,6 @@
+package Bool
+	public function bool.toString() returns string
+		if this
+			return "true"
+		return "false"
+endpackage

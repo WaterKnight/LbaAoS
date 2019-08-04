@@ -1,0 +1,95 @@
+package Unit
+	import Spot
+	import Timer
+	
+	public function unit.getX() returns real
+		return GetUnitX(this)
+
+	public function unit.getY() returns real
+		return GetUnitY(this)
+	
+	public function unit.setXY(real x, real y)
+		SetUnitX(this, x)
+		SetUnitY(this, y)
+	
+	public function unit.setXYZ(real x, real y, real z)
+		this.setXY(x, y)
+
+		this.addAbility('Amrf')
+		this.removeAbility('Amrf')
+
+		SetUnitFlyHeight(this, z - getHeight(x, y), 0)
+
+	public function unit.remove()
+		RemoveUnit(this)
+
+	public function unit.addAbility(int val) returns bool
+		return UnitAddAbility(this, val)
+
+	public function unit.removeAbility(int val) returns bool
+		return UnitRemoveAbility(this, val)
+	
+	public function unit.dealDamage(unit target, real val)
+		UnitDamageTarget(this, target, val, false, false, null, null, null)
+	
+	class Knockback
+		static real INTERVAL = 0.03125
+
+		real angle
+		real acc
+		timer durationTimer
+		timer moveTimer
+		real speed
+		unit parent
+
+		ondestroy
+			moveTimer.remove()
+			durationTimer.remove()
+
+		static function endByTimer()
+			thistype me = (GetExpiredTimer().getData() castTo thistype)
+
+			destroy me
+
+		function move()
+			speed = speed - acc * INTERVAL
+
+			parent.setXY(parent.getX() + speed * INTERVAL * Cos(angle), parent.getY() + speed * INTERVAL * Sin(angle))
+
+		static function moveByTimer()
+			thistype me = (GetExpiredTimer().getData() castTo thistype)
+			
+			me.move()
+
+		construct(unit parent, real angle, real duration, real speed, real acc)
+			this.angle = angle
+			this.acc = acc
+			this.speed = speed
+			this.parent = parent
+			durationTimer = CreateTimer()
+			moveTimer = CreateTimer()
+
+			durationTimer.setData(this castTo int)
+			moveTimer.setData(this castTo int)
+
+			moveTimer.start(INTERVAL, true, function moveByTimer)
+			durationTimer.start(duration, false, function endByTimer)
+	
+	public function unit.addKnockback(real angle, real duration, real speed, real acc)
+		new Knockback(this, angle, duration, speed, acc)
+	
+	public function unit.addKnockbackDist(real angle, real duration, real dist, real speedAccRatio)
+		real acc = dist / duration / (speedAccRatio + 0.5 * duration)
+		
+		real speed = speedAccRatio * acc
+		BJDebugMsg(R2S(acc)+";"+R2S(speed))
+		new Knockback(this, angle, duration, speed, acc)
+endpackage
+
+/*s=a/2*t²+v*t
+
+v=s/t-a/2*t
+
+v=speedAccRatio*a
+
+a=s/t/(speedAccRatio+1/2*t)*/

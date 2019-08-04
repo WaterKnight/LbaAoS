@@ -1,0 +1,20 @@
+package Timer
+	hashtable TABLE
+
+	public function timer.getData() returns int
+		return LoadInteger(TABLE, GetHandleId(this), 0)
+
+	public function timer.setData(int val)
+		SaveInteger(TABLE, GetHandleId(this), 0, val)
+
+	public function timer.remove()
+		RemoveSavedInteger(TABLE, GetHandleId(this), 0)
+		PauseTimer(this)
+		DestroyTimer(this)
+
+	public function timer.start(real timeout, bool periodic, code action)
+		TimerStart(this, timeout, periodic, action)
+
+	init
+		TABLE = InitHashtable()		
+endpackage

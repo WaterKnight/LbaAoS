@@ -1,0 +1,187 @@
+package FlakeShot
+	import DummyUnit
+	import Group
+	import List
+	import Spot
+	import Timer
+	import Unit
+
+	class Splits
+		static real INTERVAL = 0.03125
+
+		real angle
+		List<Split> children
+		timer moveTimer
+		real speed
+		real speedZ
+
+		ondestroy
+			destroy children
+			moveTimer.remove()
+
+		function move()
+			if children.isEmpty()
+				destroy this
+
+				return
+
+			speedZ -= 50
+			
+			for child in children				
+				child.move(speed * INTERVAL, speedZ * INTERVAL)
+			
+		static function moveByTimer()
+			thistype me = (GetExpiredTimer().getData() castTo thistype)
+
+			me.move()
+
+		construct(unit caster, real x, real y, real angle)
+			this.angle = angle
+			moveTimer = CreateTimer()
+			this.speed = 500
+			this.speedZ = 525
+			
+			children = new List<Split>()
+			real window = bj_PI / 7
+			
+			for i = 1 to 3
+				var child = new Split(this, x, y, getHeight(x, y), angle - window + window * (i - 1))
+				
+				children.add(child)
+
+			moveTimer.setData(this castTo int)
+
+			moveTimer.start(INTERVAL, true, function moveByTimer)
+
+	class Split
+		real angle
+		DummyUnit dummyUnit
+		Splits parent
+		real x
+		real y
+		real z
+
+		function addXYZ(real addX, real addY, real addZ)
+			x += addX
+			y += addY
+			z += addZ
+
+			dummyUnit.setXYZ(x, y, z)
+			if (z < getHeight(x, y))
+				parent.children.remove(this)
+
+		function move(real length, real lengthZ)
+			addXYZ(length * Cos(angle), length * Sin(angle), lengthZ)
+
+		construct(Splits parent, real x, real y, real z, real angle)
+			this.angle = angle
+			dummyUnit = new DummyUnit('hfoo', x, y, angle)
+			this.parent = parent
+			this.x = x
+			this.y = y
+			this.z = z
+
+	class FlakeShot		
+		static group ENUM_GROUP
+		static real HIT_RANGE = 64.
+		static real INTERVAL = 0.03125
+		static real MAX_LENGTH = 700.
+
+		static thistype THIS
+
+		real angle
+		unit caster
+		DummyUnit dummyUnit
+		timer durationTimer
+		timer moveTimer
+		real speed
+		real x
+		real y
+
+		ondestroy
+			durationTimer.remove()
+			moveTimer.remove()
+			dummyUnit.killRemove()
+			
+			new Splits(caster, x, y, angle)
+
+		static function endByTimer()
+			thistype me = (GetExpiredTimer().getData() castTo thistype)
+			
+			destroy me
+
+		function targetConditions() returns bool
+			if (GetFilterUnit() == caster)
+				return false
+				
+			return true
+
+		static function targetConditionsByPick() returns bool
+			thistype me = THIS
+
+			return me.targetConditions()
+
+		function move()
+			x = x + speed * INTERVAL * Cos(angle)
+			y = y + speed * INTERVAL * Sin(angle)
+
+			dummyUnit.setXY(x, y)
+			
+			THIS = this
+			
+			ENUM_GROUP.pick(x, y, HIT_RANGE, Condition(function targetConditionsByPick))
+			
+			unit target = ENUM_GROUP.getFirst()
+
+			if (target == null)
+				return
+
+			destroy this
+
+			caster.dealDamage(target, 50)
+			target.addKnockbackDist(Atan2(target.getY() - y, target.getX() - x), 0.35, 90, -0.8)
+
+		static function moveByTimer()
+			thistype me = (GetExpiredTimer().getData() castTo thistype)
+
+			me.move()
+
+		construct()
+			real targetX = GetSpellTargetX()
+			real targetY = GetSpellTargetY() 
+
+			caster = GetSpellAbilityUnit()
+
+			x = caster.getX()
+			y = caster.getY()
+
+			angle = Atan2(targetY - y, targetX - x)
+			dummyUnit = new DummyUnit('hpea', x, y, angle*bj_RADTODEG)
+			durationTimer = CreateTimer()
+			moveTimer = CreateTimer()
+			speed = 500
+			
+			durationTimer.setData(this castTo int)
+			moveTimer.setData(this castTo int)
+			
+			TimerStart(moveTimer, INTERVAL, true, function moveByTimer)
+			TimerStart(durationTimer, MAX_LENGTH / speed, true, function endByTimer)
+
+		static function onCast()
+			new FlakeShot()
+		
+		static function onCastConds() returns bool 
+			return (GetSpellAbilityId() == 'AHfs')
+		
+		static function onInit()
+			trigger t = CreateTrigger()
+	
+			TriggerAddAction(t, function onCast)
+			TriggerAddCondition(t, Condition(function onCastConds))
+			TriggerRegisterPlayerUnitEvent(t, Player(0), EVENT_PLAYER_UNIT_SPELL_EFFECT, null)
+			
+			ENUM_GROUP = CreateGroup()
+
+	init
+		FlakeShot.onInit()
+endpackage

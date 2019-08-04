@@ -1,0 +1,11 @@
+package Spot
+	location DUMMY_LOC
+	
+	public function getHeight(real x, real y) returns real
+		MoveLocation(DUMMY_LOC, x, y)
+
+		return GetLocationZ(DUMMY_LOC)
+
+	init
+		DUMMY_LOC = Location(0, 0)
+endpackage

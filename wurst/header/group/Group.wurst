@@ -1,0 +1,29 @@
+package Group
+	boolexpr COL_FILTER
+	real RAD
+	real X
+	real Y
+
+	function colConditions() returns bool
+		if (IsUnitInRangeXY(GetFilterUnit(), X, Y, RAD) == false)
+			return false
+
+		return true
+
+	public function group.pick(real x, real y, real rad, boolexpr filter)
+		var myFilter = And(COL_FILTER, filter)
+
+		RAD = rad
+		X = x
+		Y = y
+		
+		GroupEnumUnitsInRange(this, x, y, rad + 1024, myFilter)
+		
+		DestroyBoolExpr(myFilter)
+
+	public function group.getFirst() returns unit
+		return FirstOfGroup(this)
+	
+	init
+		COL_FILTER = Condition(function colConditions)
+endpackage

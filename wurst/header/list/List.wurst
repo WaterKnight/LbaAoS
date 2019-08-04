@@ -1,0 +1,72 @@
+package List
+	class ListIterator<t>
+		int pos
+		List<t> parent
+
+		function close()
+			destroy this
+
+		function hasNext() returns bool
+			return (pos < parent.count())
+
+		function next() returns t
+			pos++
+
+			return parent.get(pos)
+
+		construct(List<t> parent)
+			this.parent = parent
+			pos = 0
+
+	public class List<t>
+		static hashtable TABLE
+		static hashtable REVERSE_TABLE
+		
+		int count
+		
+		function count() returns int
+			return count
+		
+		function isEmpty() returns bool
+			return (count == 0)
+		
+		function get(int index) returns t
+			return (LoadInteger(TABLE, this castTo int, index) castTo t)
+		
+		function getIndex(t val) returns int
+			return LoadInteger(REVERSE_TABLE, this castTo int, val castTo int)
+		
+		function contains(t val) returns bool
+			return (getIndex(val) > 0)
+		
+		function iterator() returns ListIterator<t>
+			return new ListIterator<t>(this)
+		
+		function remove(t val)
+			t last = (LoadInteger(TABLE, this castTo int, count) castTo t)
+			
+			int index = getIndex(val)
+			
+			RemoveSavedInteger(REVERSE_TABLE, this castTo int, val castTo int)
+			
+			SaveInteger(TABLE, this castTo int, index, last castTo int)
+			SaveInteger(REVERSE_TABLE, this castTo int, last castTo int, index)
+
+			count--
+		
+		function add(t val)
+			count++
+
+			SaveInteger(TABLE, this castTo int, count, val castTo int)
+			SaveInteger(REVERSE_TABLE, this castTo int, val castTo int, count)
+		
+		construct()
+			count = 0
+		
+		static function onInit()
+			TABLE = InitHashtable()
+			REVERSE_TABLE = InitHashtable()
+	
+	init
+		List.onInit()
+endpackage
